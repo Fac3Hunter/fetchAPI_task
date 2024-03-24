@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 interface Message {
   userId: number;
-  id: number;
   title: string;
   body: string;
 }

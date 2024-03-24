@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Message from "./components/Message";
 import { useNavigate, useParams } from "react-router-dom";
 
-interface Message {
+interface MessageProps {
   userId: number;
   id: number;
   title: string;
@@ -10,18 +10,21 @@ interface Message {
 }
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const { page } = useParams();
-  const pageNumber = page ? parseInt(page) : 1;
-  const [paginationCounter, setPaginationCounter] = useState<number>(
-    10 * pageNumber
-  );
+  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const { page } = useParams();
+  const pageNumber = page ? parseInt(page) : 1; // проверка на использование параметров пагинации
+  const [paginationCounter, setPaginationCounter] = useState<number>(
+    1 * pageNumber
+  );
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
       try {
         const response = await fetch(
           "https://jsonplaceholder.typicode.com" + "/posts"
@@ -31,11 +34,14 @@ function App() {
         }
         const data = await response.json();
 
-        navigate(`../${paginationCounter / 10}`, { replace: true });
-        setMessages(data.slice(0, paginationCounter));
+        navigate(`../${paginationCounter}`, { replace: true });
+
+        setMessages(data.slice(0, paginationCounter * 10));
+
         setLoading(false);
       } catch (error) {
         console.log("error fetching data", error);
+
         setLoading(false);
       }
     };
@@ -43,7 +49,7 @@ function App() {
     fetchData();
   }, [paginationCounter, navigate]);
 
-  // Обработчик события скролла
+  // Обработчик события скролла с применением метода дебаунса (он находится в конце кода)
   const handleScroll = debounce(() => {
     const scrollHeight = document.documentElement.scrollHeight;
     const scrollTop =
@@ -53,10 +59,10 @@ function App() {
     if (
       scrollTop + clientHeight >= scrollHeight - 200 &&
       !loading &&
-      paginationCounter < 50
+      paginationCounter < 5
     ) {
-      setPaginationCounter(paginationCounter + 10);
-      navigate(`../${paginationCounter / 10}`, { replace: true });
+      setPaginationCounter(paginationCounter + 1);
+      navigate(`../${paginationCounter}`, { replace: true });
     }
   }, 100);
 
@@ -66,7 +72,7 @@ function App() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [paginationCounter, loading]);
+  }, [paginationCounter, loading, handleScroll]);
 
   return (
     <>
@@ -84,13 +90,13 @@ function App() {
           ))}
         </ul>
       </div>
-      {paginationCounter >= 50 && paginationCounter < 100 && (
+      {paginationCounter >= 5 && paginationCounter < 10 && (
         <div className="flex mb-5 items-center justify-center">
           <button
             className="bg-gray-800 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
             onClick={() => {
-              setPaginationCounter(paginationCounter + 10);
-              navigate(`../${paginationCounter / 10}`, { replace: true });
+              setPaginationCounter(paginationCounter + 1);
+              navigate(`../${paginationCounter}`, { replace: true });
             }}
           >
             Загрузить Ещё
@@ -103,6 +109,7 @@ function App() {
 
 export default App;
 
+// функция дебаунса для верной подгрузки постов
 function debounce(func: Function, delay: number) {
   let timeoutId: NodeJS.Timeout;
   return function (...args: any[]) {
